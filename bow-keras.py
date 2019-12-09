@@ -8,10 +8,11 @@ from keras.utils import to_categorical
 from keras.models import Sequential
 from keras import layers, Model
 from keras.wrappers.scikit_learn import KerasClassifier
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from numpy import array
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from scipy.stats import uniform
 
 
 def retain_unseen_example_in_test(df_train: DataFrame, df_test: DataFrame) -> DataFrame:
@@ -87,6 +88,49 @@ def evaluate_logistic(data_train: array,
     print(f"Accuracy on {columns} is {score}")
 
 
+def tune_logitstic(data_train: array,
+                   data_test: array,
+                   columns: List[str]):
+    x_train_array = get_text_array(data_train, columns)
+    x_test_array = get_text_array(data_test, columns)
+
+    vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                                 ngram_range=(1, 2), min_df=3, lowercase=True)
+    vectorizer.fit(x_train_array)
+    Xtrain = vectorizer.transform(x_train_array)
+    Xtest = vectorizer.transform(x_test_array)
+    Ytrain = data_train['category'].values
+    Ytest = data_test['category'].values
+    # LOGISTIC BASELINE DEFAULT PARAMETER
+    classifier = LogisticRegression()
+    # Create regularization penalty space
+
+    # Create regularization hyperparameter distribution using uniform distribution
+
+    params = dict(
+        penalty=['l1', 'l2'],
+        C=uniform(loc=0, scale=4))
+    search = RandomizedSearchCV(classifier,
+                                params, random_state=123456789, n_iter=200, cv=5, verbose=0, n_jobs=-1)
+
+    search_result = search.fit(Xtrain, Ytrain)
+
+    # Evaluate testing set using the best estimator
+    test_accuracy = search.score(Xtest, Ytest)
+
+    print("Best: %f using %s" % (search_result.best_score_, search_result.best_params_))
+
+    means = search_result.cv_results_['mean_test_score']
+    stds = search_result.cv_results_['std_test_score']
+    params = search_result.cv_results_['params']
+    for mean, stdev, param in zip(means, stds, params):
+        print("%f (%f) with: %r" % (mean, stdev, param))
+
+    print(f'Best Accurcacy {search_result.best_score_}\n' +
+          f'Best Param {search_result.best_params_}\n' +
+          f'Test Accuracy {test_accuracy} ')
+
+
 def main():
     run_nn: bool = True
     run_logisticbaseline: bool = False
@@ -138,9 +182,10 @@ def main():
         param_grid = dict(dropout=[0.1, 0.2],
                           input_dim=[Xtrain.shape[1]],
                           output_dim=[Ytrain.shape[1]],
-                          hidden_units=['10', '10_10',
-                                        '20', '20_20',
-                                        '100', '100_100'],
+                          hidden_units=['10', '10_10', '100_100_100',
+                                        '20', '20_20', '20_20_20',
+                                        '100', '100_100', '100_100_100',
+                                        '500', '500_500', '500_500_500'],
                           nb_epoch=[3, 4, 5],
                           batch_size=[32],
                           )
@@ -150,7 +195,7 @@ def main():
                             param_grid=param_grid,
                             cv=2,
                             n_jobs=-1,
-                            verbose=10)
+                            verbose=0)
         grid_result = grid.fit(Xtrain, Ytrain)
 
         # Evaluate testing set using the best estimator
