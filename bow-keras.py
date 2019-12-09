@@ -11,11 +11,11 @@ from keras import layers, Model
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression
+from numpy import array
 
 
 def retain_unseen_example_in_test(df_train: DataFrame, df_test: DataFrame) -> DataFrame:
-    return df_train.merge(df_test, how='left', indicator=True).
-    loc[lambda x: x['_merge'] != 'both']
+    return df_train.merge(df_test, how='left', indicator=True).loc[lambda x: x['_merge'] != 'both']
 
 
 def get_text_array(df: DataFrame, feature_list: List[str]) -> Series:
@@ -66,9 +66,32 @@ def create_logistic_model(c=1.0):
     return LogisticRegression(C=c, solver='liblinear')
 
 
+def evaluate_logistic(data_train: array,
+                      data_test: array,
+                      columns: List[str]):
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    x_train_array = get_text_array(data_train, columns)
+    x_test_array = get_text_array(data_test, columns)
+
+    vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                                 ngram_range=(1, 2), min_df=3, lowercase=True)
+    vectorizer.fit(x_train_array)
+    Xtrain = vectorizer.transform(x_train_array).toarray()
+    Xtest = vectorizer.transform(x_test_array).toarray()
+    Ytrain = data_train['category'].values
+    Ytest = data_test['category'].values
+    # LOGISTIC BASELINE DEFAULT PARAMETER
+    classifier = LogisticRegression(solver='liblinear',
+                                    random_state=123456789)
+    classifier.fit(Xtrain, Ytrain)
+    score = classifier.score(Xtest, Ytest)
+    print(f"Accuracy on {columns} is {score}")
+
+
 def main():
-    run_nn: bool = True
-    run_logisticbaseline: bool = False
+    run_nn: bool = False
+    run_logisticbaseline: bool = True
 
     # LOAD DATA SET IN PANDAS
     datafilename_train = "News_category_train.json"
@@ -80,44 +103,53 @@ def main():
     # CLEANING FROM THE TRAINING EXAMPLES IN TEST SET
     data_train = retain_unseen_example_in_test(data_train, data_test)
 
-    # EXTRACT TFIDF BOW ARRAY
-    x_train_array = get_text_array(data_train, ['headline', 'short_description', 'authors'])
-    x_test_array = get_text_array(data_test, ['headline', 'short_description', 'authors'])
-    vectorizer = TfidfVectorizer(stop_words='english', analyzer='char_wb',
-                                 ngram_range=(3, 4), min_df=3, lowercase=True)
-    vectorizer.fit(x_train_array)
-    Xtrain = vectorizer.transform(x_train_array).toarray()
-    Xtest = vectorizer.transform(x_test_array).toarray()
-
-    # EXTRACT ONE HOT ENCODING OF CLASSES
-
     if run_logisticbaseline:
-        # LOGISTIC BASELINE DEFAULT PARAMETER
-        Ytrain = get_class_array(data_train)
-        Ytest = get_class_array(data_test)
-        classifier = create_logistic_model()
-        classifier.fit(Xtrain, Ytrain)
-        score = classifier.score(Xtest, Ytest)
-        print("Logitstic Accuracy:", score)
+
+        groups_of_features = [
+            ['headline'],
+            ['short_description'],
+            ['authors'],
+            ['headline', 'authors'],
+            ['short_description', 'authors'],
+            ['headline', 'short_description'],
+            ['headline', 'short_description', 'authors']]
+
+        for group in groups_of_features:
+            evaluate_logistic(data_train,
+                              data_test,
+                              group)
 
     if run_nn:
+
+        # EXTRACT TF-IDF BOW ARRAY
+        columns = ['headline', 'short_description', 'authors']
+        x_train_array = get_text_array(data_train, columns)
+        x_test_array = get_text_array(data_test, columns)
+        vectorizer = TfidfVectorizer(stop_words='english', analyzer='char_wb',
+                                     ngram_range=(3, 4), min_df=3, lowercase=True)
+        vectorizer.fit(x_train_array)
+        Xtrain = vectorizer.transform(x_train_array).toarray()
+        Xtest = vectorizer.transform(x_test_array).toarray()
+
+        # ONE HOT ENCODING OF CLASSES FOR DNN
+
         Ytrain = get_one_hot_class(data_train)
         Ytest = get_one_hot_class(data_test)
         # NEURAL NET 1 LAYER
-        # DEFINE GRID SEARCH PARAMETERS FOR DROPOUT
+        # DEFINE GRID SEARCH PARAMETERS NN. ARCHI
         param_grid = dict(dropout=[0.1, 0.2],
                           input_dim=[Xtrain.shape[1]],
                           output_dim=[Ytrain.shape[1]],
-                          hidden_units=['10', '10_10', '100', '100_100'],
+                          hidden_units=['10', '10_10', '20', '20_20', '100', '100_100'],
                           nb_epoch=[3, 4, 5],
-                          batch_size=[10],
+                          batch_size=[32],
                           )
 
         model = KerasClassifier(build_fn=create_nn_model)
         grid = GridSearchCV(estimator=model,
                             param_grid=param_grid,
                             cv=2,
-                            n_jobs=1,
+                            n_jobs=-1,
                             verbose=10)
         grid_result = grid.fit(Xtrain, Ytrain)
 
