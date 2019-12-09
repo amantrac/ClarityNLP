@@ -4,14 +4,14 @@ import os
 from typing import List
 from pandas import DataFrame, Series
 from sklearn.preprocessing import LabelEncoder
-from sklearn.feature_extraction.text import TfidfVectorizer
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras import layers, Model
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import LogisticRegression
 from numpy import array
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 
 
 def retain_unseen_example_in_test(df_train: DataFrame, df_test: DataFrame) -> DataFrame:
@@ -69,8 +69,6 @@ def create_logistic_model(c=1.0):
 def evaluate_logistic(data_train: array,
                       data_test: array,
                       columns: List[str]):
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.linear_model import LogisticRegression
     x_train_array = get_text_array(data_train, columns)
     x_test_array = get_text_array(data_test, columns)
 
@@ -140,7 +138,9 @@ def main():
         param_grid = dict(dropout=[0.1, 0.2],
                           input_dim=[Xtrain.shape[1]],
                           output_dim=[Ytrain.shape[1]],
-                          hidden_units=['10', '10_10', '20', '20_20', '100', '100_100'],
+                          hidden_units=['10', '10_10',
+                                        '20', '20_20',
+                                        '100', '100_100'],
                           nb_epoch=[3, 4, 5],
                           batch_size=[32],
                           )
