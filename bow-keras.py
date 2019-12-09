@@ -75,8 +75,8 @@ def evaluate_logistic(data_train: array,
     vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
                                  ngram_range=(1, 2), min_df=3, lowercase=True)
     vectorizer.fit(x_train_array)
-    Xtrain = vectorizer.transform(x_train_array).toarray()
-    Xtest = vectorizer.transform(x_test_array).toarray()
+    Xtrain = vectorizer.transform(x_train_array)
+    Xtest = vectorizer.transform(x_test_array)
     Ytrain = data_train['category'].values
     Ytest = data_test['category'].values
     # LOGISTIC BASELINE DEFAULT PARAMETER
@@ -126,8 +126,8 @@ def main():
         vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
                                      ngram_range=(1, 2), min_df=3, lowercase=True)
         vectorizer.fit(x_train_array)
-        Xtrain = vectorizer.transform(x_train_array).toarray()
-        Xtest = vectorizer.transform(x_test_array).toarray()
+        Xtrain = vectorizer.transform(x_train_array)
+        Xtest = vectorizer.transform(x_test_array)
 
         # ONE HOT ENCODING OF CLASSES FOR DNN
 
@@ -149,7 +149,7 @@ def main():
         grid = GridSearchCV(estimator=model,
                             param_grid=param_grid,
                             cv=2,
-                            n_jobs=1,
+                            n_jobs=-1,
                             verbose=10)
         grid_result = grid.fit(Xtrain, Ytrain)
 
