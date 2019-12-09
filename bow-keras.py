@@ -149,7 +149,7 @@ def main():
         grid = GridSearchCV(estimator=model,
                             param_grid=param_grid,
                             cv=2,
-                            n_jobs=1,
+                            n_jobs=4,
                             verbose=10)
         grid_result = grid.fit(Xtrain, Ytrain)
 
