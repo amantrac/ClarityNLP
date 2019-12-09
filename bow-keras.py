@@ -88,8 +88,8 @@ def evaluate_logistic(data_train: array,
 
 
 def main():
-    run_nn: bool = False
-    run_logisticbaseline: bool = True
+    run_nn: bool = True
+    run_logisticbaseline: bool = False
 
     # LOAD DATA SET IN PANDAS
     datafilename_train = "News_category_train.json"
