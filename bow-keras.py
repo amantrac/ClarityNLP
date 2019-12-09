@@ -123,8 +123,8 @@ def main():
         columns = ['headline', 'short_description', 'authors']
         x_train_array = get_text_array(data_train, columns)
         x_test_array = get_text_array(data_test, columns)
-        vectorizer = TfidfVectorizer(stop_words='english', analyzer='char_wb',
-                                     ngram_range=(3, 4), min_df=3, lowercase=True)
+        vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                                     ngram_range=(1, 2), min_df=3, lowercase=True)
         vectorizer.fit(x_train_array)
         Xtrain = vectorizer.transform(x_train_array).toarray()
         Xtest = vectorizer.transform(x_test_array).toarray()
