@@ -133,7 +133,8 @@ def tune_logitstic(data_train: array,
 
 def main():
     run_nn: bool = True
-    run_logisticbaseline: bool = False
+    run_logistic_baseline: bool = False
+    run_logistic: bool = False
 
     # LOAD DATA SET IN PANDAS
     datafilename_train = "News_category_train.json"
@@ -145,7 +146,7 @@ def main():
     # CLEANING FROM THE TRAINING EXAMPLES IN TEST SET
     data_train = retain_unseen_example_in_test(data_train, data_test)
 
-    if run_logisticbaseline:
+    if run_logistic_baseline:
 
         groups_of_features = [
             ['headline'],
@@ -160,6 +161,9 @@ def main():
             evaluate_logistic(data_train,
                               data_test,
                               group)
+    if run_logistic:
+        group = ['headline', 'short_description', 'authors']
+        tune_logitstic(data_train,data_test, group)
 
     if run_nn:
 
