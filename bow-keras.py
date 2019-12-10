@@ -108,10 +108,11 @@ def tune_logitstic(data_train: array,
     # Create regularization hyperparameter distribution using uniform distribution
 
     params = dict(
-        penalty=['l1', 'l2'],
+        penalty=['l2'],
         C=uniform(loc=0, scale=4))
     search = RandomizedSearchCV(classifier,
-                                params, random_state=123456789, n_iter=200, cv=5, verbose=0, n_jobs=-1)
+                                params, random_state=123456789,
+                                n_iter=500, cv=5, verbose=0, n_jobs=-1)
 
     search_result = search.fit(Xtrain, Ytrain)
 
@@ -132,9 +133,9 @@ def tune_logitstic(data_train: array,
 
 
 def main():
-    run_nn: bool = True
+    run_nn: bool = False
     run_logistic_baseline: bool = False
-    run_logistic: bool = False
+    run_logistic: bool = True
 
     # LOAD DATA SET IN PANDAS
     datafilename_train = "News_category_train.json"
