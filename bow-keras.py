@@ -81,8 +81,9 @@ def evaluate_logistic(data_train: array,
     Ytrain = data_train['category'].values
     Ytest = data_test['category'].values
     # LOGISTIC BASELINE DEFAULT PARAMETER
-    classifier = LogisticRegression(solver='liblinear',
-                                    random_state=123456789)
+    classifier = LogisticRegression(random_state=123456789,
+                                    max_iter=500
+                                    )
     classifier.fit(Xtrain, Ytrain)
     score = classifier.score(Xtest, Ytest)
     print(f"Accuracy on {columns} is {score}")
@@ -102,7 +103,7 @@ def tune_logitstic(data_train: array,
     Ytrain = data_train['category'].values
     Ytest = data_test['category'].values
     # LOGISTIC BASELINE DEFAULT PARAMETER
-    classifier = LogisticRegression()
+    classifier = LogisticRegression(max_iter=500)
     # Create regularization penalty space
 
     # Create regularization hyperparameter distribution using uniform distribution
@@ -112,7 +113,7 @@ def tune_logitstic(data_train: array,
         C=uniform(loc=0, scale=4))
     search = RandomizedSearchCV(classifier,
                                 params, random_state=123456789,
-                                max_iter=100, cv=5, verbose=0, n_jobs=-1)
+                                n_iter=100, cv=5, verbose=0, n_jobs=-1)
 
     search_result = search.fit(Xtrain, Ytrain)
 
