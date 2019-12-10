@@ -164,7 +164,7 @@ def main():
                               group)
     if run_logistic:
         group = ['headline', 'short_description', 'authors']
-        tune_logitstic(data_train,data_test, group)
+        tune_logitstic(data_train, data_test, group)
 
     if run_nn:
 
