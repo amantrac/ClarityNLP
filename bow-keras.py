@@ -1,3 +1,4 @@
+import argparse
 import pandas as pd
 import os
 
@@ -7,6 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras import layers, Model
+from keras.models import load_model
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from numpy import array
@@ -22,7 +24,7 @@ def retain_unseen_example_in_test(df_train: DataFrame, df_test: DataFrame) -> Da
 def get_text_array(df: DataFrame, feature_list: List[str]) -> Series:
     return_df = df[feature_list[0]]
     if len(feature_list) > 1:
-        for f in feature_list:
+        for f in feature_list[1:]:
             return_df += ' ' + df[f]
     return return_df.values
 
@@ -133,10 +135,76 @@ def tune_logitstic(data_train: array,
           f'Test Accuracy {test_accuracy} ')
 
 
+def precision_recall_argmax(data_train: array,
+                            data_test: array,
+                            columns: List[str],
+                            operation_levels: List[int]=[0.99,0.95]):
+
+    x_train_array = get_text_array(data_train, columns)
+    x_test_array = get_text_array(data_test, columns)
+    vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                                 ngram_range=(1, 2), min_df=3, lowercase=True)
+    vectorizer.fit(x_train_array)
+    # Xtrain = vectorizer.transform(x_train_array)
+    Xtest = vectorizer.transform(x_test_array)
+
+
+
+    droupout = 0.1
+    archi = '100_100'
+    epochs = 1
+    batch_size = 32
+    nn_model = load_model(f'models/DNN_dropout_{droupout}_archi_{archi}_epochs'
+                          f'_{epochs}_batchsize_{batch_size}')
+
+    test_prediction = nn_model.predict(Xtest)
+    GT = pd.DataFrame(LabelEncoder().fit_transform(data_test['category']).transpose())
+    Scores = pd.DataFrame(test_prediction)
+    PR = pd.DataFrame(Scores.idxmax(axis=1))
+    for category_idx in set(LabelEncoder().fit_transform(data_train['category'])):
+        print(f"class precision of category {category_idx} is "
+              f"{len(PR[PR[0] == category_idx][GT[0] == category_idx]) / len(PR[PR[0] == category_idx]):.3f}")
+        print(f"class recall of category"
+              f" {category_idx} is "
+              f"{len(PR[PR[0] == category_idx][GT[0] == category_idx]) / len(GT[GT[0] == category_idx]):.3f}")
+
+    for operation_level in  operation_levels:
+        print(f'THRESHOLD TO OPERATE AT {operation_level}% PRECISON LEVEL')
+        eps = 1.e-9
+        for category_idx in set(LabelEncoder().fit_transform(data_train['category'])):
+            for threshold in range(0, 100):
+                threshold *= 0.01
+                tp = len(GT[0][Scores[category_idx] > threshold][GT[0][Scores[category_idx] > threshold] == category_idx])
+                fp = len(GT[0][Scores[category_idx] > threshold][GT[0][Scores[category_idx] > threshold] != category_idx])
+                tn = len(GT[0][Scores[category_idx] < threshold][GT[0][Scores[category_idx] < threshold] != category_idx])
+                fn = len(GT[0][Scores[category_idx] < threshold][GT[0][Scores[category_idx] < threshold] == category_idx])
+                precision = tp / (tp + fp + eps)
+                recall = tp / (tp + fn + eps)
+                if precision >= operation_level:
+                    print(
+                        f"precision: {precision:.3f} "
+                        f"recall: {recall: .3f} "
+                        f"threshold: {threshold: .3f} "
+                        f"category: {category_idx}")
+                    break
+
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--logistic_baseline", action='store_true', help="train default logistic regression")
+    parser.add_argument("--tune_logistic", action='store_true', help="grid for the best logistic parameters")
+    parser.add_argument("--nn", action='store_true', help="tune a Neural Network")
+    parser.add_argument("--export_nn", action='store_true', help="Export the best NN")
+    parser.add_argument("--load", action='store_true', help="Load the best NN")
+    parser.add_argument("--precision_recall", action='store_true', help="Display precison/recall/ts ")
+
+    args = parser.parse_args()
+
     run_nn: bool = False
     run_logistic_baseline: bool = False
-    run_logistic: bool = True
+    run_logistic: bool = False
+    best_nn: bool = False
+    best_nn_operation: bool = True
 
     # LOAD DATA SET IN PANDAS
     datafilename_train = "News_category_train.json"
@@ -148,7 +216,7 @@ def main():
     # CLEANING FROM THE TRAINING EXAMPLES IN TEST SET
     data_train = retain_unseen_example_in_test(data_train, data_test)
 
-    if run_logistic_baseline:
+    if args.logistic_baseline:
 
         groups_of_features = [
             ['headline'],
@@ -163,11 +231,11 @@ def main():
             evaluate_logistic(data_train,
                               data_test,
                               group)
-    if run_logistic:
+    if args.tune_logistic:
         group = ['headline', 'short_description', 'authors']
         tune_logitstic(data_train, data_test, group)
 
-    if run_nn:
+    if args.nn:
 
         # EXTRACT TF-IDF BOW ARRAY
         columns = ['headline', 'short_description', 'authors']
@@ -218,6 +286,62 @@ def main():
         print(f'Best Accurcacy {grid_result.best_score_}\n' +
               f'Best Param {grid_result.best_params_}\n' +
               f'Test Accuracy {test_accuracy} ')
+
+    if args.export_nn:
+        columns = ['headline', 'short_description', 'authors']
+        x_train_array = get_text_array(data_train, columns)
+        x_test_array = get_text_array(data_test, columns)
+        vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                                     ngram_range=(1, 2), min_df=3, lowercase=True)
+        vectorizer.fit(x_train_array)
+        Xtrain = vectorizer.transform(x_train_array)
+        Xtest = vectorizer.transform(x_test_array)
+
+        # ONE HOT ENCODING OF CLASSES FOR DNN
+
+        Ytrain = get_one_hot_class(data_train)
+        Ytest = get_one_hot_class(data_test)
+        droupout = 0.1
+        archi = '100_100'
+        epochs = 1
+        batch_size = 32
+        nn_model = create_nn_model(dropout=droupout,
+                                   input_dim=Xtrain.shape[1],
+                                   output_dim=Ytrain.shape[1],
+                                   hidden_units=archi,
+                                   )
+        nn_model.fit(Xtrain, Ytrain,
+                     epochs=epochs,
+                     batch_size=batch_size
+                     )
+        metrics = nn_model.evaluate(Xtest, Ytest)
+        print(nn_model.metrics_names)
+        print(metrics)
+
+        nn_model.save(f'models/DNN_dropout_{droupout}_archi_{archi}_epochs_{epochs}_batchsize_{batch_size}')
+
+    if args.load:
+        droupout = 0.1
+        archi = '100_100'
+        epochs = 1
+        batch_size = 32
+        nn_model = load_model(f'models/DNN_dropout_{droupout}_archi_{archi}_epochs_{epochs}_batchsize_{batch_size}')
+
+        columns = ['headline', 'short_description', 'authors']
+        x_train_array = get_text_array(data_train, columns)
+        x_test_array = get_text_array(data_test, columns)
+        vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                                     ngram_range=(1, 2), min_df=3, lowercase=True)
+        vectorizer.fit(x_train_array)
+        vectorizer.transform(x_train_array)
+        Xtest = vectorizer.transform(x_test_array)
+
+        train_prediction = nn_model.predict(Xtest)
+        print(pd.DataFrame(train_prediction))
+
+    if args.precision_recall:
+        precision_recall_argmax(data_train, data_test,
+                                ['headline', 'short_description', 'authors'])
 
 
 if __name__ == '__main__':
