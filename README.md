@@ -138,4 +138,4 @@ Is there any missing value in the test data set: False
 ```python
 data_train.category.value_counts().plot(kind='bar')
 ```
-![Training categories distribution](distribution-train-categories.jpg)
+![Training categories distribution](images/distribution-train-categories.jpg)
