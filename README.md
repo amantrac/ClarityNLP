@@ -35,3 +35,28 @@ print(second_store)
 (827718.0764869936, 800000, 772281.9235130064)
 (788315.422946098, 780000, 771684.577053902)
 ```
+We firt notice, that both confidence intervals overlap therefore we can not conclude that one performs better. We confirm this as well with a simple t-test, where we try to reject the null hypothesis of mean equalities of the population
+
+```python
+import numpy as np
+from scipy import stats
+
+def stat_test_diff_normal(mean_a , std_a, mean_b, std_b, N ):
+    var_a = std_a**2
+    var_b = std_b**2
+    N = 50
+    s = np.sqrt((var_a + var_b)/2)
+    ## Calculate the t-statistics
+    t = (mean_a - mean_b) /(s*np.sqrt(2/N))
+    ## Compare with the critical t-value
+    #Degrees of freedom
+    df = 2*N - 2
+    #p-value after comparison with the t 
+    p = 1 - stats.t.cdf(t,df=df)
+    return 2*p 
+
+print(f" p-value = {stat_test_diff_normal(800000,100000,780000,30000, 50)}")
+```
+```
+p-value = 0.17866908114208235
+```
