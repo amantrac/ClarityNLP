@@ -183,7 +183,7 @@ from pandas import Series
 def get_text_array(df: DataFrame, feature_list: List[str]) -> Series:
     return_df = df[feature_list[0]]
     if len(feature_list) > 1:
-        for f in feature_list:
+        for f in feature_list[1:]:
             return_df += ' ' + df[f]
     return return_df.values
 ```
