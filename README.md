@@ -144,3 +144,142 @@ data_train.category.value_counts().plot(kind='bar')
 data_test.category.value_counts().plot(kind='bar')
 ```
 ![Test categories distribution](images/distribution-test-categories.png)
+
+## Remarks on the sampling of the training set and test set: 
+
+<font size="3"> Clearly the training data set have been sampled in a specific way, i.e. stratified sampling, with some categories more represented. We see a clear difference in the distributions of the training set vs test set. 
+
+In the remainder, we consider the hypothesis that the class distribution induced by the test dataset is the one that matters for the business. 
+</font>
+
+### Check Training is fully different from Test
+
+<font size="3">  We see there is three points in the test already in training. This is not necessarly wrong, many machine learning problem have to deal with already encountered examples, for instance CTR prediction of well know query-ads pairs. However, in the remainder we consider that we want to consider the extent to which we can generalize on unseen examples. Hence, we remove from the training these three points. </font>
+
+```python
+from pandas import DataFrame
+def retain_unseen_example_in_test(df_train: DataFrame, df_test: DataFrame) -> DataFrame:
+    return df_train.merge(df_test, how='left', indicator=True).loc[lambda x: x['_merge'] != 'both']
+
+print(f"number of rows before filtering {data_train.shape[0]}")
+data_train = retain_unseen_example_in_test(data_train,data_test)
+print(f"number of rows after filtering {data_train.shape[0]}")
+```
+```
+number of rows before filtering 65000
+number of rows after filtering 64997
+```
+<font size="3"> We removed 3 examples from the training already in the test </font>
+
+## Start with a simple and strong Baseline ( or BOW Logistic Regression baseline)
+<font size="3"> If one aim to have ML in production, the prefered operational way is to start with a simple but effective model, make all the components of the pipeline work, AB test, and roll out. Only when this is done, one could consider improving over this. Keep in mind the 80\20 rule, with 20% of the effort on many problem one can reach 80% of the results. In this line, we propose to start with a simple BOW Logistic Regression
+</font>
+
+### Extract the Text into Arrays
+
+```python
+from typing import List
+from pandas import Series
+def get_text_array(df: DataFrame, feature_list: List[str]) -> Series:
+    return_df = df[feature_list[0]]
+    if len(feature_list) > 1:
+        for f in feature_list:
+            return_df += ' ' + df[f]
+    return return_df.values
+```
+<font size="3"> Notice that there are different metadata available for each news, the headline, the short description, the list of authors, and even the link to the news. 
+Let's check first by using a simple TFIDF BOW model(i.e. word unigrams and bigrams vector space), with a Logistic Regression with default parameter (we check the tunning later on), how each group of features matters </font>
+
+
+### One example metadata
+
+```python
+data_train.iloc[0]
+```
+```
+authors                                                Priscilla Frank
+category                                                             A
+headline             'Rice-Ko' Is What Happens When Artists Recreat...
+link                 https://www.huffingtonpost.com/entry/artists-r...
+short_description    And it's all a delicious homage to a 1950s art...
+_merge                                                       left_only
+Name: 0, dtype: object
+```
+
+
+<font size="3">In the remainder we will not focus on the link eventhough one could consider using the link it self as feature, or go beyond that by crawling the landing page. We let this as future exercice. 
+
+Let's build a  first simple TFIDF BOW model(i.e. word unigrams and bigrams vector space), with a Logistic Regression with default parameter (we check the tunning later on).
+</font>
+
+```python
+from numpy import array
+from typing import List
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+def evaluate_logistic(data_train: array,
+                      data_test: array,
+                      columns_group: List[List[str]]):
+
+    vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                             ngram_range=(1, 2), min_df=3, lowercase=True)
+    
+    Ytrain = data_train['category'].values
+    Ytest = data_test['category'].values
+    classifier = LogisticRegression(max_iter=500,
+                                        random_state=1)
+    
+    for columns in columns_group:
+        
+        x_train_array = get_text_array(data_train, columns)
+        x_test_array = get_text_array(data_test, columns)
+        vectorizer.fit(x_train_array)
+        Xtrain = vectorizer.transform(x_train_array)
+        Xtest = vectorizer.transform(x_test_array)
+
+        # LOGISTIC BASELINE DEFAULT PARAMETER
+
+        classifier.fit(Xtrain, Ytrain)
+        score = classifier.score(Xtest, Ytest)
+        print(f"Accuracy on {columns} is {score}")
+
+groups_of_features = [
+            ['headline'],
+            ['short_description'],
+            ['authors'],
+            ['headline', 'authors'],
+            ['short_description', 'authors'],
+            ['headline', 'short_description'],
+            ['headline', 'short_description', 'authors']]
+
+evaluate_logistic(data_train,
+                      data_test,groups_of_features)
+                      
+```
+```
+Accuracy on ['headline'] is 0.7463346112200404
+Accuracy on ['short_description'] is 0.6182142752626496
+Accuracy on ['authors'] is 0.674811975066577
+Accuracy on ['headline', 'authors'] is 0.8237979573322408
+Accuracy on ['short_description', 'authors'] is 0.751924146205847
+Accuracy on ['headline', 'short_description'] is 0.844722132802669
+Accuracy on ['headline', 'short_description', 'authors'] is 0.8438734599514208
+```
+
+Using the current code base, you can also directly runing the command:
+```
+python bow-keras.py --logistic_baseline
+```
+
+<font size="3"> We observe that when using all the features we improve, even though the authors are not fundamental as by adding nothing significant is observed. </font>
+
+## Tuning the baseline
+<font size="3"> It's important to tune well the regularization parameters of the logistic regression to reach good performance. This is what we do now, by looking for the best l2 regularization scheme </font>
+
+
+
+
+
+
+
