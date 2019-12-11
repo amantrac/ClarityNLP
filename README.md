@@ -342,7 +342,199 @@ Best Param {'C': 3.831032901277876, 'penalty': 'l2'}
 Test Accuracy 0.8598519212197477
 ```
 
-This a improvements of 1.89% of over the not tuned version.
+This is an improvement of 1.89% of over the none tuned version.
+
+## Going Deep tuning a Neural Net
+
+<font size="3"> Let's see if we can win some performance by doing Deep. Keep in mind that this will be at the cost of the explainability of the model, indeed a logistic assign weight to each words and hence one could easily understand how a specific score is computed. Also, when going to DNN one will need to use a specific library at inference time which could be difficult depending on available platform, in the other hand a logistic inference can easely be implemented an consists only of a dot product and a sigmoid.</font>
+
+```python
+def create_nn_model(dropout: float,
+                    input_dim: int,
+                    output_dim: int,
+                    hidden_units: str,
+                    ) -> Model:
+    hidden_units = hidden_units.split('_')
+    model = Sequential()
+    for units in hidden_units:
+        model.add(layers.Dense(int(units), input_dim=input_dim, activation='relu'))
+        model.add(layers.Dropout(dropout))
+    # final layer
+    model.add(layers.Dense(output_dim, activation='sigmoid'))
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    model.summary()
+    return model
+
+
+# EXTRACT TF-IDF BOW ARRAY
+columns = ['headline', 'short_description', 'authors']
+x_train_array = get_text_array(data_train, columns)
+x_test_array = get_text_array(data_test, columns)
+vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                             ngram_range=(1, 2), min_df=3, lowercase=True)
+vectorizer.fit(x_train_array)
+Xtrain = vectorizer.transform(x_train_array)
+Xtest = vectorizer.transform(x_test_array)
+
+# ONE HOT ENCODING OF CLASSES FOR DNN
+
+Ytrain = get_one_hot_class(data_train)
+Ytest = get_one_hot_class(data_test)
+# NEURAL NET 1 LAYER
+# DEFINE GRID SEARCH PARAMETERS NN. ARCHI
+param_grid = dict(dropout=[0.1, 0.2],
+                  input_dim=[Xtrain.shape[1]],
+                  output_dim=[Ytrain.shape[1]],
+                  hidden_units=['10', '10_10', '100_100_100',
+                                '20', '20_20', '20_20_20',
+                                '100', '100_100', '100_100_100',
+                                '500', '500_500', '500_500_500'],
+                  nb_epoch=[3, 4, 5],
+                  batch_size=[32],
+                  )
+
+model = KerasClassifier(build_fn=create_nn_model)
+grid = GridSearchCV(estimator=model,
+                    param_grid=param_grid,
+                    cv=2,
+                    n_jobs=-1,
+                    verbose=0)
+grid_result = grid.fit(Xtrain, Ytrain)
+```
+
+Or
+```
+python bow-keras.py --nn
+```
+
+```
+Best Param {'batch_size': 32, 'dropout': 0.1, 'hidden_units': '100_100', 'input_dim': 78637, 'nb_epoch': 4, 'output_dim': 10}
+Test Accuracy 0.8714114427566528 
+```
+<font size="3">This allowed us to identify a specific NN structure, and droupout parameter tuned  internally on the training set, that outperform the logistic by reaching 0.8714 accuracy </font>
+
+To export the neural model of the best configuration please run:
+``` 
+python bow-keras.py --export_nn
+```
+This will train the model, save it in the models directory, and return it accuracy on the test set. Please do this step before trying to load the model further.
+
+# Productization Plan
+
+## Level of acceptability of production
+
+<font size="3">In order to start tagging our news, we need to check with the business the extent to which the produced tag are good enough to be put into production. Accuracy is not good enough as it is averaged on all classes. We can consider each class individually, and measure precision, and recall for each of the classes. We can check with the business what is the level of false positive accetpable (for instance 0.1%, or 0.01% of record can be wrongly classified). Then, using a set of annotation of the class, we can determine what is the threshold value (i.e. probability of the class |x in case of logistic, or cross entropy based models) over which we consider the element to belong to the class. So the first step will be to infer this.</font>
+
+## Load best model (NN)
+
+```python
+from keras.models import load_model
+
+droupout = 0.1
+archi = '100_100'
+epochs = 1
+batch_size = 32
+nn_model = load_model(f'DNN_dropout_{droupout}_archi_{archi}_epochs_{epochs}_batchsize_{batch_size}')
+
+```
+
+## Precision and Recall at class level based on arg_max class assignement
+If we would assign the category with the best class we measure the following individual class level precision and recall
+```
+class recall of category 0 is 0.792
+class precision of category 1 is 0.798
+class recall of category 1 is 0.730
+class precision of category 2 is 0.745
+class recall of category 2 is 0.619
+class precision of category 3 is 0.686
+class recall of category 3 is 0.834
+class precision of category 4 is 0.912
+class recall of category 4 is 0.915
+class precision of category 5 is 0.946
+class recall of category 5 is 0.949
+class precision of category 6 is 0.889
+class recall of category 6 is 0.930
+class precision of category 7 is 0.872
+class recall of category 7 is 0.630
+class precision of category 8 is 0.583
+class recall of category 8 is 0.679
+class precision of category 9 is 0.827
+class recall of category 9 is 0.918
+```
+
+
+<font size="3"> As one can see some classes have a pretty low precision, for category 8 were we will end up with wrong assignement more than 41% of the cases. This is of course not acceptable. 
+In general, it will be better to discuss with the business what level of wrong assignement are tolerated (i.e. false positives), and calibrate the system in consequences. Let's say for instance that we want a precision of 99% or 95% for all classes. </font>
+
+We can compute it by
+```python
+    test_prediction = nn_model.predict(Xtest)
+    GT = pd.DataFrame(LabelEncoder().fit_transform(data_test['category']).transpose())
+    Scores = pd.DataFrame(test_prediction)
+    PR = pd.DataFrame(Scores.idxmax(axis=1))
+    for category_idx in set(LabelEncoder().fit_transform(data_train['category'])):
+        print(f"class precision of category {category_idx} is "
+              f"{len(PR[PR[0] == category_idx][GT[0] == category_idx]) / len(PR[PR[0] == category_idx]):.3f}")
+        print(f"class recall of category"
+              f" {category_idx} is "
+              f"{len(PR[PR[0] == category_idx][GT[0] == category_idx]) / len(GT[GT[0] == category_idx]):.3f}")
+
+    for operation_level in  operation_levels:
+        print(f'THRESHOLD TO OPERATE AT {operation_level}% PRECISON LEVEL')
+        eps = 1.e-9
+        for category_idx in set(LabelEncoder().fit_transform(data_train['category'])):
+            for threshold in range(0, 100):
+                threshold *= 0.01
+                tp = len(GT[0][Scores[category_idx] > threshold][GT[0][Scores[category_idx] > threshold] == category_idx])
+                fp = len(GT[0][Scores[category_idx] > threshold][GT[0][Scores[category_idx] > threshold] != category_idx])
+                tn = len(GT[0][Scores[category_idx] < threshold][GT[0][Scores[category_idx] < threshold] != category_idx])
+                fn = len(GT[0][Scores[category_idx] < threshold][GT[0][Scores[category_idx] < threshold] == category_idx])
+                precision = tp / (tp + fp + eps)
+                recall = tp / (tp + fn + eps)
+                if precision >= operation_level:
+                    print(
+                        f"precision: {precision:.3f} "
+                        f"recall: {recall: .3f} "
+                        f"threshold: {threshold: .3f} "
+                        f"category: {category_idx}")
+                    break
+```
+
+```
+THRESHOLD TO OPERATE AT 0.99% PRECISON LEVEL
+precision: 0.991 recall:  0.509 threshold:  0.390 category: 0
+precision: 1.000 recall:  0.039 threshold:  0.800 category: 1
+precision: 0.991 recall:  0.077 threshold:  0.690 category: 2
+precision: 0.993 recall:  0.142 threshold:  0.940 category: 3
+precision: 0.990 recall:  0.343 threshold:  0.970 category: 4
+precision: 0.990 recall:  0.803 threshold:  0.460 category: 5
+precision: 0.990 recall:  0.510 threshold:  0.700 category: 6
+precision: 1.000 recall:  0.005 threshold:  0.780 category: 7
+precision: 1.000 recall:  0.018 threshold:  0.700 category: 8
+precision: 0.990 recall:  0.302 threshold:  0.770 category: 9
+THRESHOLD TO OPERATE AT 0.95% PRECISON LEVEL
+precision: 0.956 recall:  0.715 threshold:  0.120 category: 0
+precision: 0.959 recall:  0.191 threshold:  0.640 category: 1
+precision: 0.961 recall:  0.105 threshold:  0.660 category: 2
+precision: 0.952 recall:  0.372 threshold:  0.820 category: 3
+precision: 0.950 recall:  0.837 threshold:  0.350 category: 4
+precision: 0.954 recall:  0.935 threshold:  0.100 category: 5
+precision: 0.951 recall:  0.783 threshold:  0.410 category: 6
+precision: 0.950 recall:  0.271 threshold:  0.500 category: 7
+precision: 1.000 recall:  0.018 threshold:  0.700 category: 8
+precision: 0.950 recall:  0.725 threshold:  0.380 category: 9
+```
+
+One can run this precision/recall/threshold analysis just by runing:
+```python bow-keras.py --precision_recall
+```
+
+
+ 
+
+
 
 
 
