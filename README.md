@@ -12,4 +12,23 @@ To avoid selection bias, one have to use different selection strategy, as strati
 ## What is the difference between Bayesian Estimate and Maximum Likelihood Estimation (MLE)? Can you think of an example where Bayesian estimate is the most appropriate method? Another example in which MLE is the most appropriate method?</font>
 <font size="3">in MLE one would usually directly maximize the likelihood of a class, or its conditional likelihood in order to infer a model (values of parameters). A typical example is when training a logistic regression model that consists of finding the parameter values that maximize the conditional likelihood of the data. This is very appropriate when we have enough data, such that each feature is correctly estimated. However, when we do not have enough data  (leading to the parameters estimation to lack confidence) one would rather use a bayesian approach. In that context, we usually have a believe (for instance on parameter values) that come in form of a prior distribution. By so doing, one can take decision based on an evidence that is marginalized on the full distribution of the parameter set and hence account better for the variance of the estimates. A simple way to see this is that if you consider a normal prior, as one starts having more and more data, confidence increases and leads to nearly a null variance, in which case an MLE is great. However, for the lack of data case, the prior believe will smoothen the decision to avoid a wrong estimation based on few observations. In practise, a Bayesian model can be very effective for the long tail and rare events, while the MLE would work fine on the head (which if we are facing a power law as is usually the case will cover 80 to 90% of the domain).</font>
 
+## II - Conceptual Problem
+<font size="3"> We are given the average performance of 2 stores in $, along with the stand. deviation and the number of points of which both measure are calculated. If we make the hypothesis, that the performance follow a normal distribution we can easily derive a confidence interval to compare both scores with a 95\% confidence. </font>
+
+```python
+import numpy as np
+import scipy.stats
+
+
+def confidence_interval(m, std, n, confidence=0.95):
+    ci_1, ci_2 = scipy.stats.norm.interval(confidence, loc=0, scale=1)
+    h = (ci_1*std/(n**(0.5)))
+    return m-h, m, m+h
+    
+first_store = confidence_interval(800000,100000,50)
+print(first_store)
+second_store= confidence_interval(780000,30000,50)
+print(second_store)
+
+```
 
