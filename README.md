@@ -267,7 +267,7 @@ Accuracy on ['headline', 'short_description'] is 0.844722132802669
 Accuracy on ['headline', 'short_description', 'authors'] is 0.8438734599514208
 ```
 
-Using the current code base, you can also directly runing the command:
+Using the current code base, you can also directly run the command:
 ```
 python bow-keras.py --logistic_baseline
 ```
@@ -277,8 +277,72 @@ python bow-keras.py --logistic_baseline
 ## Tuning the baseline
 <font size="3"> It's important to tune well the regularization parameters of the logistic regression to reach good performance. This is what we do now, by looking for the best l2 regularization scheme </font>
 
+```python
+import numpy as np
+import scipy.stats
+from scipy.stats import uniform
+from sklearn.model_selection import RandomizedSearchCV
 
 
+def tune_logitstic(data_train: array,
+                   data_test: array,
+                   columns: List[str]):
+    x_train_array = get_text_array(data_train, columns)
+    x_test_array = get_text_array(data_test, columns)
+
+    vectorizer = TfidfVectorizer(stop_words='english', analyzer='word',
+                                 ngram_range=(1, 2), min_df=3, lowercase=True)
+    vectorizer.fit(x_train_array)
+    Xtrain = vectorizer.transform(x_train_array)
+    Xtest = vectorizer.transform(x_test_array)
+    Ytrain = data_train['category'].values
+    Ytest = data_test['category'].values
+    # LOGISTIC BASELINE DEFAULT PARAMETER
+    classifier = LogisticRegression(max_iter=500)
+    # Create regularization penalty space
+
+    # Create regularization hyperparameter distribution using uniform distribution
+
+    params = dict(
+        penalty=['l2'],
+        C=uniform(loc=0, scale=4))
+    search = RandomizedSearchCV(classifier,
+                                params, random_state=123456789,
+                                n_iter=100, cv=5, verbose=0, n_jobs=-1)
+
+    search_result = search.fit(Xtrain, Ytrain)
+
+    # Evaluate testing set using the best estimator
+    test_accuracy = search.score(Xtest, Ytest)
+
+    print("Best: %f using %s" % (search_result.best_score_, search_result.best_params_))
+
+    means = search_result.cv_results_['mean_test_score']
+    stds = search_result.cv_results_['std_test_score']
+    params = search_result.cv_results_['params']
+    for mean, stdev, param in zip(means, stds, params):
+        print("%f (%f) with: %r" % (mean, stdev, param))
+
+    print(f'Best Accurcacy {search_result.best_score_}\n' +
+          f'Best Param {search_result.best_params_}\n' +
+          f'Test Accuracy {test_accuracy} ')
+    
+
+group = ['headline', 'short_description', 'authors']
+tune_logitstic(data_train, data_test, group)
+
+```
+
+Or run the command:
+```
+python bow-keras.py --tune_logistic
+```
+```
+Best Param {'C': 3.831032901277876, 'penalty': 'l2'}
+Test Accuracy 0.8598519212197477
+```
+
+This a improvements of 1.89% of over the not tuned version.
 
 
 
