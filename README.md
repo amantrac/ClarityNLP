@@ -10,7 +10,8 @@ In the context of this exercice for instance, we are given  a training set, and 
 To avoid selection bias, one have to use different selection strategy, as stratified sampling based on specific features as category, or CTR, etc. The idea would be to cover all cases that may lead to a bias. Another technique would consist of introducing randomization in the production system. For instance, one way could be to sample the recommendation based on the probability score and so always give the chance to not recommended items to still show up. 
 
 As with regards to my personal experience, in the context of designing a relevance model for search, the sampling mechanism used to extract a training set and test set was very critical. For instance, it was important to sample random cases that normally appear rarely in production due to a selection bias, otherwise when such examples do happen even if rarely they may go through the filtering and eventually ending up to be shown just because the model has never been trained on such rare examples that could ruin the user exeperience.  More information on this project in : 
-```Aiello, L., Arapakis, I., Baeza-Yates, R., Bai, X., Barbieri, N., Mantrach, A. and Silvestri, F., 2016, October. The role of relevance in sponsored search. In Proceedings of the 25th ACM International on Conference on Information and Knowledge Management (pp. 185-194). ACM.
+```
+Aiello, L., Arapakis, I., Baeza-Yates, R., Bai, X., Barbieri, N., Mantrach, A. and Silvestri, F., 2016, October. The role of relevance in sponsored search. In Proceedings of the 25th ACM International on Conference on Information and Knowledge Management (pp. 185-194). ACM.
 ```
 
 
