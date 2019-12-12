@@ -352,7 +352,7 @@ This is an improvement of 1.89% of over the none tuned version.
 
 ## Going Deep tuning a Neural Net
 
-<font size="3"> Let's see if we can win some performance by doing Deep. Keep in mind that this will be at the cost of the explainability of the model, indeed a logistic assign weight to each words and hence one could easily understand how a specific score is computed. Also, when going to DNN one will need to use a specific library at inference time which could be difficult depending on available platform, in the other hand a logistic inference can easely be implemented an consists only of a dot product and a sigmoid.</font>
+<font size="3"> Let's see if we can win some performance by going Deep. Keep in mind that this will be at the cost of the explainability of the model, indeed a logistic assign weight to each words and hence one could easily understand how a specific score is computed. Also, when going to DNN one will need to use a specific library at inference time which could be difficult depending on available platform, in the other hand a logistic inference can easely be implemented an consists only of a dot product and a sigmoid.</font>
 
 ```python
 def create_nn_model(dropout: float,
