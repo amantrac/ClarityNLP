@@ -431,7 +431,7 @@ This will train the model, save it in the models directory, and return its accur
 
 ## Level of acceptability of production
 
-<font size="3">In order to start tagging our news, we need to check with the business the extent to which the produced tag are good enough to be put into production. Accuracy is not good enough as it is averaged on all classes. We can consider each class individually, and measure precision, and recall for each of the classes. We can check with the business what is the level of false positive accetpable (for instance 0.1%, or 0.01% of record can be wrongly classified). Then, using a set of annotation of the class, we can determine what is the threshold value (i.e. probability of the class |x in case of logistic, or cross entropy based models) over which we consider the element to belong to the class. So the first step will be to infer this.</font>
+<font size="3">In order to start tagging our news, we need to check with the business the extent to which the produced tag are good enough to be put into production. Accuracy is not good enough as it is averaged on all classes. We can consider each class individually, and measure precision, and recall for each of the classes. We can check with the business what is the level of false positive acceptable (for instance 0.1%, or 0.01% of record can be wrongly classified). Then, using a set of annotation of the class, we can determine what is the threshold value (i.e. probability of the class |x in case of logistic, or cross entropy based models) over which we consider the element to belong to the class. </font>
 
 ## Load best model (NN)
 
