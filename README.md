@@ -278,7 +278,7 @@ Using the current code base, you can also directly run the command:
 python bow-keras.py --logistic_baseline
 ```
 
-<font size="3"> We observe that when using all the features we improve, even though the metadata "authors" is not fundamental as by adding nothing significant is observed. </font>
+<font size="3"> We observe that when using all the features we improve, even though the metadata "authors" is not fundamental since no significant improvement is observed. </font>
 
 ## Tuning the baseline
 <font size="3"> It's important to tune well the regularization parameters of the logistic regression to reach good performance. This is what we do now, by looking for the best l2 regularization scheme </font>
