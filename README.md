@@ -107,7 +107,7 @@ During that cycle, false positives, and false negatives should be discussed alon
 
 # Business Understanding - What is available / What does a solution look like
 
-<font size="3">Having highlighted  the main aspect of problems, let's see what is given to us. Basically, we are provided with two json files, rouglhy small (65000 samples for the training, 30K of the test, 10 Categories). What we propose is to first start with a simple baseline relying on Bag-Of-Words modeling, using a logistic regression. We propose to go through the exercice using this first modeling, and iteratively see what drives the performance (in terms of the features), and then tunning the model. We wil then propose additional steps to go beyond a simple logistic and see what are the pros and cons of such a choice.</font>
+<font size="3">Having highlighted  the main aspect of problems, let's see what is given to us. Basically, we are provided with two json files, rouglhy small (65000 samples for the training, 34171 sample in the test, 10 Categories). What we propose is to first start with a simple baseline relying on Bag-Of-Words modeling, using a logistic regression. We propose to go through the exercice using this first modeling, and iteratively see what drives the performance (in terms of the features), and then tunning the model. We wil then propose additional steps to go beyond a simple logistic and see what are the pros and cons of such a choice.</font>
 
 
 # Technology choices
