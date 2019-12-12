@@ -112,7 +112,7 @@ During that cycle, false positives, and false negatives should be discussed alon
 
 # Technology choices
 
-<font size="3">For data preparation we decide to use pandas as it is a fast way to load the data and do cleaning operation on it, as check for Nans values, be sure the intersection between Training and Test is void, having a look at the category distribution. Also, since the dataset is pretty small this can be done directly on the laptop itself. Also, pandas interface well wit numpy, scikit, and keras that we will use a machine learning tools for this project. They allow us to easily train and test models as logistic regression, and neural networks, and also do hyperparameter tunning using internal cross validation. They will also provide facilities for plotting, and computing metrics (as accuracy for example).</font>
+<font size="3">For data preparation we decide to use pandas as it is a fast way to load the data and do cleaning operation on it, as check for Nans values, be sure the intersection between Training and Test is void, having a look at the category distribution. Also, since the dataset is pretty small this can be done directly on the laptop itself. Also, pandas interface well with numpy, scikit, and keras that we will use as a machine learning tools for this project. They allow us to easily train and test models as logistic regression, and neural networks, and also do hyperparameter tunning using internal cross validation. They will also provide facilities for plotting, and computing metrics (as accuracy for example).</font>
 
 
 
