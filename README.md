@@ -85,7 +85,7 @@ It is asked to design a classification pipeline in the context of a business dec
 
 ### (b) How often should the system be (re)trained and how:
 
-<font size="3"> As explained earlier, since we are dealing with human annotations the pace of retraining will be dictated by the rythm at which new annotations comes in. We can easely make the assumption that we will get new annotations to be added to production once a week. In other word, we could envisage heavy learning systems that will take up to 1 week for training (
+<font size="3"> As explained earlier, since we are dealing with human annotations the pace of retraining will be dictated by the rythm at which new annotations comes in. We can easely make the assumption that we will get new annotations to be added to production once a week. In other word, we could envisage heavy learning systems that will take up to 1 week for training.
 </font>
 
 ### (c) Life-cycle of the training and test set:
