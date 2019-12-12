@@ -425,7 +425,7 @@ To export the neural model of the best configuration please run:
 ``` 
 python bow-keras.py --export_nn
 ```
-This will train the model, save it in the models directory, and return it accuracy on the test set. Please do this step before trying to load the model further.
+This will train the model, save it in the models directory, and return its accuracy on the test set. Please do this step before trying to load the model further.
 
 # Productization Plan
 
