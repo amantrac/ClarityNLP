@@ -92,7 +92,7 @@ It is asked to design a classification pipeline in the context of a business dec
 
 <font size="3"> In the real world, the training and test set will be evolving, mostly to keep injecting new examples not covered 
 well so far. To do so, one will generally select news articles by relying on metrics as their popularity and make sure that the most popular articles are perfectly well covered, and check performance specifically on the part of the traffic that matters. Many times, metrics are not well designed, or do not reflect the reality of the traffic that matters. On top of that, the performance should be analyzed on the torso, and tail of the category distribution as the system keep improving.
-During that cycle, false positive, and false negatives should be discussed along with the annotation team, and additional example should be extracted (using keyword search for instance) that resemble to the false positives and false negatives and used to improve the training set, and test set.
+During that cycle, false positives, and false negatives should be discussed along with the annotation team, and additional example should be extracted (using keyword search for instance) that resemble to the false positives and false negatives and used to improve the training set, and test set.
 </font>
 
 ### (d) Serving at runtime or Offline:
